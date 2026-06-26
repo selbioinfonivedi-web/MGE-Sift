@@ -1,0 +1,83 @@
+# MGE-Sift Production Pipeline Docker Container
+# Multi-stage build for optimized image size
+
+FROM mambaorg/micromamba:latest as builder
+
+# Install build dependencies
+RUN micromamba install -y -c conda-forge \
+    python=3.11 \
+    pip \
+    git \
+    wget \
+    && micromamba clean --all -y
+
+WORKDIR /app
+
+# Copy environment specification
+COPY environment.yml .
+
+# Install conda dependencies
+RUN micromamba env create -f environment.yml && \
+    micromamba clean --all -y
+
+# ============================================================================
+# PRODUCTION IMAGE
+# ============================================================================
+
+FROM mambaorg/micromamba:latest
+
+# Set environment variables
+ENV PATH=/opt/conda/envs/mge_pipeline/bin:$PATH \
+    CONDA_PREFIX=/opt/conda/envs/mge_pipeline \
+    PYTHONUNBUFFERED=1 \
+    NEXTFLOW_HOME=/opt/nextflow \
+    WORKDIR=/workspace
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    wget \
+    curl \
+    graphviz \
+    default-jre \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy conda environment from builder
+COPY --from=builder /opt/conda/envs/mge_pipeline /opt/conda/envs/mge_pipeline
+
+# Install Nextflow
+RUN mkdir -p /opt/nextflow && \
+    cd /opt/nextflow && \
+    wget -qO nextflow https://get.nextflow.io && \
+    chmod +x nextflow
+
+# Copy application code
+COPY . /app
+
+# Install Python package
+RUN pip install --no-cache-dir \
+    fastapi>=0.104.0 \
+    uvicorn>=0.24.0 \
+    pydantic>=2.0 \
+    requests>=2.31.0 \
+    pytest>=7.4.0 \
+    pytest-asyncio>=0.21.0
+
+# Create user for security
+RUN useradd -m -u 1000 mge_user && \
+    chown -R mge_user:mge_user /app /workspace
+
+USER mge_user
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Expose API port
+EXPOSE 8000
+
+# Default entrypoint - can be overridden
+ENTRYPOINT ["/opt/nextflow/nextflow"]
+CMD ["--help"]

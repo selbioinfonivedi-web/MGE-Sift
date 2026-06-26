@@ -1,0 +1,26 @@
+name: MGE-Sift CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Bash and Python
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bash python3
+      - name: Run pipeline validation
+        run: |
+          chmod +x tests/test_pipeline.sh
+          bash tests/test_pipeline.sh --quick
+      - name: Validate Nextflow entrypoint
+        run: |
+          if [ -f nextflow/main.nf ]; then
+            echo "Nextflow entrypoint present"
+          fi

@@ -18,7 +18,7 @@
               v-model="apiEndpoint"
               type="text"
               class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:outline-none focus:border-blue-400"
-              placeholder="http://localhost:8000"
+              :placeholder="import.meta.env.VITE_API_URL || 'http://localhost:8000'"
             />
             <p class="text-xs text-slate-400 mt-1">Base URL for API requests</p>
           </div>
@@ -143,7 +143,7 @@ import { useStore } from '@/stores/main'
 import { api } from '@/api'
 
 const store = useStore()
-const apiEndpoint = ref(localStorage.getItem('api_endpoint') || 'http://localhost:8000')
+const apiEndpoint = ref(localStorage.getItem('api_endpoint') || import.meta.env.VITE_API_URL || 'http://localhost:8000')
 const apiKey = ref(store.apiKey)
 const showApiKey = ref(false)
 const testing = ref(false)
@@ -176,7 +176,7 @@ const saveSettings = () => {
 }
 
 const resetSettings = () => {
-  apiEndpoint.value = 'http://localhost:8000'
+  apiEndpoint.value = import.meta.env.VITE_API_URL || 'http://localhost:8000'
   apiKey.value = 'dev-key-change-in-production'
 }
 </script>

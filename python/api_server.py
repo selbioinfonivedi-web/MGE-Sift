@@ -33,6 +33,13 @@ app = FastAPI(
     version="2.0.0"
 )
 
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[o.strip() for o in os.environ.get("CORS_ORIGINS", "http://localhost:3000").split(",")],
+    allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
+)
+
 # Database configuration
 DB_PATH = Path(os.getenv('MGE_DB_PATH', './mge_results.db'))
 API_KEY = os.getenv('MGE_API_KEY', 'dev-key-change-in-production')

@@ -1,5 +1,4 @@
 # Docker Compose configuration for production deployment
-version: '3.9'
 
 services:
   # Core Nextflow pipeline service
@@ -28,12 +27,10 @@ services:
       timeout: 10s
       retries: 3
 
-  # FastAPI results server
   api:
     build:
       context: .
       dockerfile: Dockerfile.production
-      target: base
     image: mge-sift-api:2.0.0
     container_name: mge-api
     command: python -m uvicorn python.api_server:app --host 0.0.0.0 --port 8000 --reload
@@ -57,17 +54,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # SQLite database for results persistence
-  database:
-    image: sqlite:latest
-    container_name: mge-db
-    environment:
-      SQLITE_DB: /data/mge_results.db
-    volumes:
-      - db_data:/data
-    networks:
-      - mge-network
-    restart: unless-stopped
 
   # PostgreSQL option for larger deployments
   postgres:
@@ -95,6 +81,8 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://api:8000}
     image: mge-sift-web:2.0.0
     container_name: mge-web
     environment:
@@ -121,7 +109,6 @@ volumes:
     driver: local
   api_data:
     driver: local
-  db_data:
-    driver: local
+
   postgres_data:
     driver: local

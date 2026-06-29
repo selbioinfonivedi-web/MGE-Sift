@@ -1,7 +1,7 @@
 # MGE-Sift Production Pipeline Docker Container
 # Multi-stage build for optimized image size
 
-FROM mambaorg/micromamba:latest as builder
+FROM mambaorg/micromamba:latest AS builder
 
 # Install build dependencies
 RUN micromamba install -y -c conda-forge \
@@ -34,6 +34,7 @@ ENV PATH=/opt/conda/envs/mge_pipeline/bin:$PATH \
     WORKDIR=/workspace
 
 # Install system dependencies
+USER root
 RUN apt-get update && apt-get install -y \
     git \
     wget \
@@ -41,6 +42,7 @@ RUN apt-get update && apt-get install -y \
     graphviz \
     default-jre \
     && rm -rf /var/lib/apt/lists/*
+USER $MAMBA_USER
 
 WORKDIR /app
 

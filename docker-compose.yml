@@ -1,114 +1,67 @@
-# Docker Compose configuration for production deployment
+version: '3.8'
 
 services:
-  # Core Nextflow pipeline service
-  pipeline:
-    build:
-      context: .
-      dockerfile: Dockerfile.production
-    image: mge-sift-pipeline:2.0.0
-    container_name: mge-pipeline
+  database:
+    image: postgres:15
     environment:
-      NEXTFLOW_HOME: /opt/nextflow
-      NXF_WORK: /workspace/work
-      NXF_SINGULARITY_CACHEDIR: /workspace/.singularity
-    volumes:
-      - ./genomes:/workspace/genomes:ro
-      - ./results:/workspace/results
-      - ./config:/workspace/config:ro
-      - ./databases:/workspace/databases:ro
-      - nextflow_cache:/workspace/work
-    networks:
-      - mge-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "ls", "-la", "/workspace/results"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile.production
-    image: mge-sift-api:2.0.0
-    container_name: mge-api
-    command: python -m uvicorn python.api_server:app --host 0.0.0.0 --port 8000 --reload
-    environment:
-      MGE_DB_PATH: /data/mge_results.db
-      MGE_API_KEY: ${MGE_API_KEY:-change-me-in-production}
-    volumes:
-      - ./results:/data:ro
-      - ./python:/app/python:ro
-      - api_data:/data
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: mgesift
     ports:
-      - "8000:8000"
-    networks:
-      - mge-network
-    depends_on:
-      - pipeline
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-
-  # PostgreSQL option for larger deployments
-  postgres:
-    image: postgres:15-alpine
-    container_name: mge-postgres
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-mge_results}
-      POSTGRES_USER: ${POSTGRES_USER:-mge}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - mge-network
-    restart: unless-stopped
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mge}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
-    profiles:
-      - prod-pg  # Only start with: docker-compose --profile prod-pg up
 
-  # Vue.js Web UI
-  web:
-    build:
-      context: ./web
-      dockerfile: Dockerfile
-      args:
-        VITE_API_URL: ${VITE_API_URL:-http://api:8000}
-    image: mge-sift-web:2.0.0
-    container_name: mge-web
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: 
+      context: ./backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
-      VITE_API_URL: http://api:8000
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:postgrespassword@database/mgesift
+      - CELERY_BROKER_URL=redis://redis:6379/0
+
+  celery_worker:
+    build: 
+      context: ./backend
+    command: celery -A worker.celery_app worker --loglevel=info
+    volumes:
+      - ./backend:/app
+      - ./workflows:/workflows  # Needs access to run Nextflow
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:postgrespassword@database/mgesift
+      - CELERY_BROKER_URL=redis://redis:6379/0
+
+  frontend:
+    build:
+      context: ./frontend
     ports:
       - "3000:3000"
-    networks:
-      - mge-network
-    depends_on:
-      - api
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-networks:
-  mge-network:
-    driver: bridge
+    volumes:
+      - ./frontend:/app
 
 volumes:
-  nextflow_cache:
-    driver: local
-  api_data:
-    driver: local
-
-  postgres_data:
-    driver: local
+  pgdata:

@@ -520,12 +520,69 @@ function renderDonut(d){
    DOWNSTREAM ANALYSIS
 ════════════════════════════════════════════════════════════════ */
 $("analysisPick").addEventListener("change", e=>{ $("runAnalysisBtn").disabled = !e.target.value; });
-$("runAnalysisBtn").addEventListener("click", ()=>{
+$("runAnalysisBtn").addEventListener("click", async ()=>{
   const kind=$("analysisPick").value; if(!kind) return;
-  const btn=$("runAnalysisBtn"); btn.disabled=true; btn.innerHTML='<span class="spin"></span> Running…';
-  setTimeout(()=>{ renderAnalysis(kind); btn.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Run analysis'; btn.disabled=false;
-    $("analysisPanel").scrollIntoView({behavior:"smooth",block:"nearest"}); }, 900);
+  const btn=$("runAnalysisBtn"); btn.disabled=true; btn.innerHTML='<span class="spin"></span> Running (Backend)…';
+  
+  try {
+      const file = $("fileReads").files[0] || $("fileRef").files[0];
+      if (!file) throw new Error("Please upload a file at the top first.");
+      
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      toast("Uploading file to MGE-Sift Backend...");
+      const uploadRes = await fetch("http://localhost:8000/api/v1/upload/", { method: "POST", body: formData });
+      if (!uploadRes.ok) throw new Error("Upload failed.");
+      const jobData = await uploadRes.json();
+      const jobId = jobData.job_id;
+      
+      toast("Analyzing... " + jobId);
+      let resultsData = null;
+      while (true) {
+          await new Promise(r => setTimeout(r, 3000));
+          const res = await fetch(`http://localhost:8000/api/v1/results/${jobId}`);
+          if (res.ok) {
+              const data = await res.json();
+              if (data.status === "COMPLETED") { resultsData = data; break; }
+              if (data.status === "FAILED") { throw new Error("Pipeline failed on backend."); }
+          }
+      }
+      
+      renderRealAnalysis(resultsData, kind);
+  } catch (err) {
+      toast("Error: " + err.message);
+  }
+  
+  btn.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Run analysis'; 
+  btn.disabled=false;
+  $("analysisPanel").scrollIntoView({behavior:"smooth",block:"nearest"});
 });
+
+function renderRealAnalysis(resultsData, kind){
+  const bg = "var(--teal-soft)", fg = "var(--teal)";
+  const rows = resultsData.results.map(r => 
+      `<tr>
+        <td><code>${r.mge_type}</code></td>
+        <td><code>${r.prediction}</code></td>
+        <td>${r.location_start} - ${r.location_end}</td>
+        <td><span class="tag ${r.classification === 'INTRINSIC' ? 'sus' : 'res'}">${r.classification}</span></td>
+      </tr>`
+  ).join("");
+
+  $("analysisPanel").innerHTML = `
+    <div class="analysis-panel">
+      <div class="ap-head">
+        <span class="ap-ic" style="background:${bg};color:${fg}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 8l-7 4-7-4M5 8l7-4 7 4v8l-7 4-7-4z"/></svg></span>
+        <div><div class="ap-title">Live MGE-Sift Results</div><div class="ap-sub">Real pipeline output from backend</div></div>
+      </div>
+      <div class="chips"><span class="chip n">Powered by FastAPI & Nextflow</span></div>
+      <table>
+        <thead><tr><th>Type</th><th>Feature (Contig/Gene)</th><th>Locus</th><th>Classification</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="4" style="text-align:center">No MGEs detected</td></tr>'}</tbody>
+      </table>
+    </div>`;
+}
 
 function renderAnalysis(kind){
   const d=S.data, rnd=seeded(d.sample+kind);

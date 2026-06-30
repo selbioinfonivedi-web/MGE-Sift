@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VetGenome Analyze — one-click sequencing analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#f4f7f8; --surface:#ffffff; --surface-2:#eef2f4; --surface-3:#e6ebee;
+  --ink:#142028; --ink-2:#52616b; --ink-3:#8b97a0;
+  --line:#e2e8eb; --line-2:#cdd6db;
+  --teal:#0f857a; --teal-2:#0b6a61; --teal-soft:#d8f0ec; --teal-line:#9bd7cd;
+  --amber:#b45309; --amber-soft:#fcefdc; --amber-line:#eecfa0;
+  --red:#c0233f; --red-soft:#fbe1e6; --red-line:#f0b3bf;
+  --green:#157f4a; --green-soft:#dbf2e4;
+  --blue:#1f5fd6; --blue-soft:#e1eaff; --purple:#6d3fd1; --purple-soft:#ece3fb;
+  --rs:8px; --rm:12px; --rl:18px;
+  --sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+  --shadow:0 1px 2px rgba(16,40,48,.04),0 8px 24px rgba(16,40,48,.06);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:14.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+code{font-family:var(--mono)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+
+/* top bar */
+.topbar{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:14px;height:60px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:800;letter-spacing:-.02em;font-size:17px}
+.helix{width:24px;height:24px;flex:0 0 auto}
+.demo-tag{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--amber);background:var(--amber-soft);border:1px solid var(--amber-line);padding:3px 9px;border-radius:20px}
+.spacer{flex:1}
+.btn{border:1px solid var(--line-2);background:var(--surface);color:var(--ink-2);padding:9px 16px;border-radius:var(--rs);font-size:13.5px;font-weight:600;display:inline-flex;align-items:center;gap:8px;transition:background .15s,border-color .15s,color .15s}
+.btn:hover{background:var(--surface-2);color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn-primary:hover:not(:disabled){background:var(--teal-2);border-color:var(--teal-2);color:#fff}
+.btn-lg{padding:13px 26px;font-size:15px;border-radius:var(--rm)}
+.btn svg{width:16px;height:16px}
+.hide{display:none!important}
+
+/* ── UPLOAD VIEW ── */
+.hero{text-align:center;padding:44px 0 14px}
+.hero h1{font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1.1}
+.hero h1 .hl{color:var(--teal)}
+.hero p{color:var(--ink-2);font-size:15.5px;margin-top:12px;max-width:54ch;margin-left:auto;margin-right:auto}
+.steps-strip{display:flex;justify-content:center;gap:8px;margin:22px 0 6px;flex-wrap:wrap}
+.pill{font-size:12.5px;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:6px 14px;display:flex;align-items:center;gap:7px;box-shadow:var(--shadow)}
+.pill b{color:var(--teal);font-weight:800}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--rl);box-shadow:var(--shadow);padding:26px;margin:18px 0}
+.field-h{font-size:13px;font-weight:700;display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.field-h .n{width:22px;height:22px;border-radius:50%;background:var(--teal-soft);color:var(--teal-2);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.field-sub{font-size:12.5px;color:var(--ink-3);margin:-4px 0 9px 31px}
+
+.drop{border:2px dashed var(--line-2);border-radius:var(--rm);background:var(--surface-2);padding:22px;display:flex;align-items:center;gap:16px;transition:border-color .15s,background .15s;cursor:pointer}
+.drop:hover,.drop.over{border-color:var(--teal);background:var(--teal-soft)}
+.drop .ic{width:44px;height:44px;flex:0 0 auto;border-radius:11px;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--teal)}
+.drop .ic svg{width:22px;height:22px}
+.drop .tx{flex:1;min-width:0}
+.drop .tx .t1{font-weight:600;font-size:14px}
+.drop .tx .t2{font-size:12.5px;color:var(--ink-3);margin-top:2px}
+.drop.filled{border-style:solid;border-color:var(--green);background:var(--green-soft)}
+.drop.filled .ic{color:var(--green);border-color:transparent;background:#fff}
+.filename{font-family:var(--mono);font-size:12.5px;color:var(--ink);font-weight:500;word-break:break-all}
+.filemeta{font-size:11.5px;color:var(--ink-3);margin-top:2px}
+.orpath{display:flex;align-items:center;gap:10px;margin-top:10px}
+.orpath span{font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;white-space:nowrap}
+.orpath input{flex:1;font-family:var(--mono);font-size:12.5px;border:1px solid var(--line-2);border-radius:var(--rs);padding:8px 11px;background:var(--surface);color:var(--ink);outline:none}
+.orpath input:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft)}
+
+.opt-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:680px){.opt-grid{grid-template-columns:1fr}}
+.fg label{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:6px}
+select,.txin{width:100%;border:1px solid var(--line-2);border-radius:var(--rs);padding:10px 12px;font-size:14px;background:var(--surface);color:var(--ink);outline:none;appearance:none;-webkit-appearance:none}
+select{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b97a0' stroke-width='2.2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}
+select:focus,.txin:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft)}
+.hr{border:none;border-top:1px solid var(--line);margin:22px 0}
+.cta-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.cta-note{font-size:12.5px;color:var(--ink-3)}
+.honesty{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--ink-2);background:var(--blue-soft);border:1px solid #cdddff;border-radius:var(--rm);padding:12px 14px;margin-top:18px;line-height:1.55}
+.honesty svg{width:17px;height:17px;flex:0 0 auto;color:var(--blue);margin-top:1px}
+.honesty code{background:rgba(0,0,0,.05);padding:1px 5px;border-radius:4px;font-size:11.5px}
+
+/* ── RUNNING VIEW ── */
+.run-wrap{text-align:center;padding:38px 0 10px}
+.ring{width:150px;height:150px;margin:8px auto 18px}
+.run-wrap h2{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.run-status{font-size:14.5px;color:var(--ink-2);margin-top:6px;min-height:22px}
+.stage-list{max-width:520px;margin:24px auto 0;text-align:left;display:flex;flex-direction:column;gap:2px}
+.stage{display:flex;align-items:center;gap:13px;padding:12px 16px;border-radius:var(--rm);background:var(--surface);border:1px solid var(--line);transition:background .2s,border-color .2s}
+.stage.active{border-color:var(--teal-line);background:var(--teal-soft)}
+.stage.done{opacity:.8}
+.stage .sdot{width:26px;height:26px;flex:0 0 auto;border-radius:50%;border:2px solid var(--line-2);display:flex;align-items:center;justify-content:center;color:var(--ink-3)}
+.stage.done .sdot{background:var(--green);border-color:var(--green);color:#fff}
+.stage.active .sdot{border-color:var(--teal);color:var(--teal)}
+.stage .stx{flex:1}
+.stage .st1{font-weight:600;font-size:14px}
+.stage .st2{font-size:12px;color:var(--ink-3)}
+.spin{width:15px;height:15px;border:2px solid var(--teal);border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── RESULTS VIEW ── */
+.res-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:26px 0 6px}
+.res-head h2{font-size:24px;font-weight:800;letter-spacing:-.02em}
+.res-head .sub{font-size:13.5px;color:var(--ink-2);margin-top:4px}
+.res-head .sub .ok{color:var(--green);font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:8px 0 4px}
+@media(max-width:860px){.cards{grid-template-columns:repeat(2,1fr)}}
+.mcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--rm);padding:15px 16px;box-shadow:var(--shadow)}
+.mcard .ml{font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.mcard .mv{font-size:23px;font-weight:800;letter-spacing:-.02em;margin-top:5px}
+.mcard .mv.g{color:var(--green)} .mcard .mv.a{color:var(--amber)} .mcard .mv.t{color:var(--teal)}
+.mcard .ms{font-size:11.5px;color:var(--ink-3);margin-top:2px}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+@media(max-width:760px){.chart-grid{grid-template-columns:1fr}}
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:var(--rl);padding:18px;box-shadow:var(--shadow)}
+.chart h3{font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:space-between}
+.chart .csub{font-size:12px;color:var(--ink-3);margin-top:2px;margin-bottom:8px}
+.chart svg{width:100%;height:auto;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:12px;color:var(--ink-2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
+
+.consensus{display:flex;align-items:center;gap:16px;background:linear-gradient(100deg,var(--teal-soft),#fff);border:1px solid var(--teal-line);border-radius:var(--rl);padding:20px;margin-top:14px}
+.consensus .big{width:50px;height:50px;flex:0 0 auto;border-radius:13px;background:#fff;border:1px solid var(--teal-line);display:flex;align-items:center;justify-content:center;color:var(--teal)}
+.consensus .big svg{width:26px;height:26px}
+.consensus .ctx{flex:1;min-width:0}
+.consensus .ct1{font-weight:800;font-size:16px}
+.consensus .ct2{font-size:13px;color:var(--ink-2);margin-top:2px}
+
+/* downstream */
+.next{background:var(--surface);border:1px solid var(--line);border-radius:var(--rl);box-shadow:var(--shadow);padding:24px;margin:16px 0 40px}
+.next h3{font-size:18px;font-weight:800;letter-spacing:-.02em}
+.next p.lead{color:var(--ink-2);font-size:14px;margin-top:4px}
+.next-row{display:grid;grid-template-columns:1.4fr 1.4fr auto;gap:12px;align-items:end;margin-top:18px}
+@media(max-width:680px){.next-row{grid-template-columns:1fr}}
+.analysis-panel{margin-top:20px;border-top:1px solid var(--line);padding-top:20px}
+.ap-head{display:flex;align-items:center;gap:11px;margin-bottom:4px}
+.ap-ic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.ap-ic svg{width:18px;height:18px}
+.ap-title{font-size:16px;font-weight:800}
+.ap-sub{font-size:12.5px;color:var(--ink-3)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.chip{font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:20px;border:1px solid}
+.chip.r{background:var(--red-soft);border-color:var(--red-line);color:var(--red)}
+.chip.g{background:var(--green-soft);border-color:#a9d9bd;color:var(--green)}
+.chip.n{background:var(--surface-2);border-color:var(--line);color:var(--ink-2)}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3);font-weight:700;padding:9px 12px;border-bottom:1px solid var(--line)}
+td{padding:10px 12px;border-bottom:1px solid var(--line);color:var(--ink)}
+tr:last-child td{border-bottom:none}
+td code,th code{font-family:var(--mono);font-size:12px}
+.tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px}
+.tag.res{background:var(--red-soft);color:var(--red)} .tag.sus{background:var(--green-soft);color:var(--green)}
+.tag.hi{background:var(--red-soft);color:var(--red)} .tag.med{background:var(--amber-soft);color:var(--amber)} .tag.lo{background:var(--surface-2);color:var(--ink-2)}
+.minicards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px}
+@media(max-width:680px){.minicards{grid-template-columns:repeat(2,1fr)}}
+.minicard{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--rm);padding:12px 14px}
+.minicard .v{font-size:20px;font-weight:800}
+.minicard .l{font-size:11.5px;color:var(--ink-3);margin-top:2px}
+.ap-note{font-size:12.5px;color:var(--ink-3);margin-top:14px;line-height:1.55}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 20px;border-radius:30px;font-size:13.5px;font-weight:500;opacity:0;pointer-events:none;transition:.25s;z-index:90}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+footer{text-align:center;color:var(--ink-3);font-size:12px;padding:24px 0 36px}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="wrap">
+  <div class="brand">
+    <svg class="helix" viewBox="0 0 24 24" fill="none" stroke="#0f857a" stroke-width="1.7" stroke-linecap="round"><path d="M5 3c0 4 14 5 14 9S5 17 5 21"/><path d="M19 3c0 4-14 5-14 9s14 5 14 9"/><path d="M7 6h10M8 9h8M8 15h8M7 18h10"/></svg>
+    VetGenome <span style="color:var(--teal)">Analyze</span>
+  </div>
+  <span class="demo-tag" title="Results shown are example data. Connect a compute server to analyze real files.">Preview · example data</span>
+  <div class="spacer"></div>
+  <button class="btn hide" id="restartBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8"/><path d="M3 3v5h5"/></svg> New analysis</button>
+</div></div>
+
+<!-- ════════ UPLOAD ════════ -->
+<section id="view-upload" class="wrap">
+  <div class="hero">
+    <h1>From raw reads to answers,<br><span class="hl">without the bioinformatics</span></h1>
+    <p>Upload your sequencing reads and a reference genome. We run quality control, clean-up, assembly and consensus automatically — then you pick the analysis you need.</p>
+    <div class="steps-strip">
+      <span class="pill"><b>1</b> Upload files</span>
+      <span class="pill"><b>2</b> We process it</span>
+      <span class="pill"><b>3</b> See your dashboard</span>
+      <span class="pill"><b>4</b> Choose an analysis</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <!-- reads -->
+    <div class="field-h"><span class="n">1</span> Sequencing reads</div>
+    <div class="field-sub">Your basecalled reads from the sequencer — FASTQ or FASTA (<code>.fastq</code>, <code>.fastq.gz</code>, <code>.fasta</code>).</div>
+    <label class="drop" id="dropReads">
+      <input type="file" id="fileReads" accept=".fastq,.fq,.fasta,.fa,.gz" hidden>
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m0 0L8 8m4-4l4 4"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></span>
+      <span class="tx" id="readsText"><span class="t1">Drop your reads here, or click to browse</span><span class="t2">One file per sample</span></span>
+    </label>
+    <div class="orpath"><span>or server path</span><input type="text" id="pathReads" placeholder="/data/runs/run-2026-06/barcode01.fastq.gz"></div>
+
+    <hr class="hr">
+
+    <!-- reference -->
+    <div class="field-h"><span class="n">2</span> Reference genome</div>
+    <div class="field-sub">A trusted genome of the organism you expect — used to map reads and build the consensus (<code>.fasta</code>).</div>
+    <label class="drop" id="dropRef">
+      <input type="file" id="fileRef" accept=".fasta,.fa,.fna,.gz" hidden>
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5V5a2 2 0 012-2h12v18H6a2 2 0 01-2-2z"/><path d="M9 7h6M9 11h6"/></svg></span>
+      <span class="tx" id="refText"><span class="t1">Drop your reference FASTA here, or click to browse</span><span class="t2">e.g. the species you're testing for</span></span>
+    </label>
+    <div class="orpath"><span>or server path</span><input type="text" id="pathRef" placeholder="/refs/ecoli_k12.fasta"></div>
+
+    <hr class="hr">
+
+    <!-- options -->
+    <div class="field-h"><span class="n">3</span> A few details</div>
+    <div class="field-sub">Sensible defaults are chosen for everything else — you don't need to touch the rest of the pipeline.</div>
+    <div class="opt-grid">
+      <div class="fg"><label>Sequencing machine</label>
+        <select id="platform">
+          <option value="minion">Oxford Nanopore — MinION</option>
+          <option value="gridion">Oxford Nanopore — GridION</option>
+          <option value="promethion">Oxford Nanopore — PromethION</option>
+          <option value="flongle">Oxford Nanopore — Flongle</option>
+        </select>
+      </div>
+      <div class="fg"><label>Host animal (to remove its DNA)</label>
+        <select id="host">
+          <option value="cattle">Cattle (Bos taurus)</option>
+          <option value="pig">Pig (Sus scrofa)</option>
+          <option value="goat">Goat (Capra hircus)</option>
+          <option value="sheep">Sheep (Ovis aries)</option>
+          <option value="none">No host removal</option>
+        </select>
+      </div>
+      <div class="fg"><label>Sample name</label>
+        <input type="text" class="txin" id="sampleName" placeholder="auto from filename">
+      </div>
+    </div>
+
+    <hr class="hr">
+    <div class="cta-row">
+      <button class="btn btn-primary btn-lg" id="startBtn" disabled><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Start analysis</button>
+      <span class="cta-note" id="ctaNote">Add reads and a reference to begin.</span>
+    </div>
+
+    <div class="honesty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+      <span>This is the operator interface (a preview). The dashboard below shows <b>example results</b> so you can see the full experience. To analyze real files, a developer connects this screen to your lab's compute server at the marked spot in <code>runPipeline()</code> — the layout and steps stay exactly the same.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ RUNNING ════════ -->
+<section id="view-running" class="wrap hide">
+  <div class="run-wrap">
+    <div class="ring" id="ringWrap"></div>
+    <h2 id="runTitle">Analyzing your sample…</h2>
+    <div class="run-status" id="runStatus">Getting things ready</div>
+    <div class="stage-list" id="stageList"></div>
+  </div>
+</section>
+
+<!-- ════════ RESULTS ════════ -->
+<section id="view-results" class="wrap hide">
+  <div class="res-head">
+    <div>
+      <h2 id="resName">Sample results</h2>
+      <div class="sub" id="resSub"><span class="ok">✓ Analysis complete</span></div>
+    </div>
+    <button class="btn" id="reportBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Download summary</button>
+  </div>
+
+  <div class="cards" id="metricCards"></div>
+
+  <div class="chart-grid">
+    <div class="chart"><h3>Read length distribution</h3><div class="csub">How long your reads are — longer is generally better for assembly.</div><div id="chartLen"></div></div>
+    <div class="chart"><h3>Read quality</h3><div class="csub">Quality scores (Q) of your reads. Q20 ≈ 99% accurate per base.</div><div id="chartQual"></div></div>
+    <div class="chart"><h3>What's in the sample</h3><div class="csub">Where your DNA came from after host removal.</div><div id="chartTax"></div><div class="legend" id="legendTax"></div></div>
+    <div class="chart"><h3>Coverage across the genome</h3><div class="csub">How many reads cover each region. Even, deep coverage is best.</div><div id="chartCov"></div></div>
+  </div>
+
+  <div class="consensus">
+    <div class="big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg></div>
+    <div class="ctx">
+      <div class="ct1">Consensus genome ready</div>
+      <div class="ct2" id="consSub">Final genome assembled from your reads against the reference.</div>
+    </div>
+    <button class="btn btn-primary" id="dlConsensus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Download FASTA</button>
+  </div>
+
+  <!-- downstream -->
+  <div class="next">
+    <h3>What would you like to do next?</h3>
+    <p class="lead">Now that the genome is ready, choose an analysis. We'll run it on the consensus and show the result here.</p>
+    <div class="next-row">
+      <div class="fg"><label>Analysis</label>
+        <select id="analysisPick">
+          <option value="">Select an analysis…</option>
+          <option value="amr">AMR — antimicrobial resistance prediction</option>
+          <option value="snp">SNP analysis — variants vs. reference</option>
+          <option value="mlst">MLST — sequence typing</option>
+          <option value="virulence">Virulence gene screening</option>
+          <option value="phylo">Phylogenetics — nearest relatives</option>
+        </select>
+      </div>
+      <div class="fg"><label>Save results to (optional)</label>
+        <input type="text" class="txin" id="savePath" placeholder="/results/{sample}/" style="font-family:var(--mono);font-size:12.5px">
+      </div>
+      <button class="btn btn-primary" id="runAnalysisBtn" disabled><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Run analysis</button>
+    </div>
+    <div id="analysisPanel"></div>
+  </div>
+
+  <footer>VetGenome Analyze · preview interface · example results for demonstration</footer>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ════════════════════════════════════════════════════════════════
+   STATE + tiny helpers
+════════════════════════════════════════════════════════════════ */
+const S = { reads:null, ref:null, sample:"", platform:"minion", host:"cattle", data:null };
+const $ = id => document.getElementById(id);
+function show(view){ ["upload","running","results"].forEach(v=>$("view-"+v).classList.toggle("hide", v!==view)); window.scrollTo(0,0); }
+function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"),1800); }
+function fmt(n){ return n.toLocaleString("en-US"); }
+function seeded(seed){ let h=2166136261; for(const c of seed) h=(h^c.charCodeAt(0))*16777619>>>0; return ()=> (h=(h*1103515245+12345)>>>0)/4294967296; }
+
+/* ════════════════════════════════════════════════════════════════
+   FILE INPUTS  (drag-drop + browse + path field)
+════════════════════════════════════════════════════════════════ */
+function wireDrop(dropId, inputId, textId, slot){
+  const drop=$(dropId), input=$(inputId), text=$(textId);
+  drop.addEventListener("click", e=>{ if(e.target.tagName!=="INPUT") input.click(); });
+  ["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over");}));
+  ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over");}));
+  drop.addEventListener("drop", e=>{ if(e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); });
+  input.addEventListener("change", ()=>{ if(input.files[0]) setFile(input.files[0]); });
+  function setFile(f){
+    S[slot]={name:f.name, size:f.size};
+    drop.classList.add("filled");
+    text.innerHTML=`<span class="filename">${f.name}</span><span class="filemeta">${(f.size/1048576).toFixed(1)} MB · ready</span>`;
+    refreshStart();
+  }
+}
+wireDrop("dropReads","fileReads","readsText","reads");
+wireDrop("dropRef","fileRef","refText","ref");
+$("pathReads").addEventListener("input", e=>{ if(e.target.value.trim()){ S.reads={name:e.target.value.trim().split(/[\\/]/).pop(), path:e.target.value.trim()}; } else if(!$("fileReads").files[0]) S.reads=null; refreshStart(); });
+$("pathRef").addEventListener("input", e=>{ if(e.target.value.trim()){ S.ref={name:e.target.value.trim().split(/[\\/]/).pop(), path:e.target.value.trim()}; } else if(!$("fileRef").files[0]) S.ref=null; refreshStart(); });
+
+function refreshStart(){
+  const ok = S.reads && S.ref;
+  $("startBtn").disabled=!ok;
+  $("ctaNote").textContent = ok ? "Everything's ready — start whenever you like." :
+    (!S.reads && !S.ref) ? "Add reads and a reference to begin." : !S.reads ? "Still need your sequencing reads." : "Still need a reference genome.";
+}
+
+/* ════════════════════════════════════════════════════════════════
+   PIPELINE RUN
+   ── This is where a developer connects the real compute server. ──
+════════════════════════════════════════════════════════════════ */
+const STAGES = [
+  {t:"Checking read quality", s:"FastQC + NanoPlot"},
+  {t:"Trimming adapters & filtering", s:"Porechop + chopper"},
+  {t:"Removing host & contaminant DNA", s:"Kraken2 + host depletion"},
+  {t:"Mapping reads to the reference", s:"minimap2 + samtools"},
+  {t:"Calling variants", s:"Clair3 + Sniffles2"},
+  {t:"Building the consensus genome", s:"bedtools + bcftools"},
+];
+
+$("startBtn").addEventListener("click", runPipeline);
+
+function runPipeline(){
+  S.platform=$("platform").value; S.host=$("host").value;
+  S.sample = ($("sampleName").value.trim()) || (S.reads.name||"sample").replace(/\.(fastq|fq|fasta|fa)(\.gz)?$/i,"") || "sample";
+
+  /* ───────────────────────────────────────────────────────────────
+     REAL BACKEND HOOK:
+     Replace the simulated progress below with a call to your server.
+     e.g.  const job = await fetch('/api/run', {method:'POST', body: formData})
+           then poll  /api/run/{id}/status  to advance the stages,
+           and on completion set  S.data = <results JSON from server>.
+     The dashboard + downstream analyses already read from S.data, so
+     the rest of this UI needs no changes.
+  ─────────────────────────────────────────────────────────────── */
+  S.data = generateExampleResults(S.sample);   // ← demo data; swap for server response
+
+  show("running");
+  $("runTitle").textContent = "Analyzing " + S.sample + "…";
+  renderStages(-1); renderRing(0);
+  let i=0; const per=950;
+  const tick=()=>{
+    renderStages(i); renderRing(Math.round((i)/STAGES.length*100));
+    $("runStatus").textContent = STAGES[i] ? STAGES[i].t + " · " + STAGES[i].s : "";
+    i++;
+    if(i<=STAGES.length){ setTimeout(tick, per); }
+    else { renderRing(100); renderStages(STAGES.length); $("runStatus").textContent="Done — opening your dashboard"; setTimeout(showResults, 650); }
+  };
+  setTimeout(tick, 400);
+}
+
+function renderStages(active){
+  $("stageList").innerHTML = STAGES.map((st,idx)=>{
+    const cls = idx<active ? "done" : idx===active ? "active" : "";
+    const mark = idx<active ? "✓" : idx===active ? '<span class="spin"></span>' : (idx+1);
+    return `<div class="stage ${cls}"><span class="sdot">${mark}</span><span class="stx"><span class="st1">${st.t}</span><span class="st2">${st.s}</span></span></div>`;
+  }).join("");
+}
+function renderRing(pct){
+  const r=58, C=2*Math.PI*r, off=C*(1-pct/100);
+  $("ringWrap").innerHTML=`<svg viewBox="0 0 150 150"><circle cx="75" cy="75" r="${r}" fill="none" stroke="var(--surface-3)" stroke-width="11"/>
+    <circle cx="75" cy="75" r="${r}" fill="none" stroke="var(--teal)" stroke-width="11" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}" transform="rotate(-90 75 75)" style="transition:stroke-dashoffset .6s"/>
+    <text x="75" y="82" text-anchor="middle" font-size="30" font-weight="800" fill="var(--ink)">${pct}%</text></svg>`;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   EXAMPLE RESULTS  (stand-in for the server's JSON response)
+════════════════════════════════════════════════════════════════ */
+function generateExampleResults(sample){
+  const rnd = seeded(sample+"x");
+  const reads = 80000 + Math.floor(rnd()*120000);
+  const meanLen = 6000 + Math.floor(rnd()*5000);
+  const meanQ = 12 + +(rnd()*6).toFixed(1);
+  const cov = 35 + Math.floor(rnd()*60);
+  const hostPct = S.host==="none" ? 0 : Math.floor(5+rnd()*25);
+  const targetPct = 100 - hostPct - Math.floor(rnd()*8) - 4;
+  const otherPct = 100 - hostPct - targetPct;
+  // read length histogram
+  const lenBins=[]; for(let i=0;i<10;i++){ const center=(i+0.5); lenBins.push(Math.round(reads*0.1*Math.exp(-Math.pow(center-4,2)/8)*(0.7+rnd()*0.6))); }
+  // quality histogram
+  const qBins=[]; for(let i=0;i<8;i++){ qBins.push(Math.round(reads*0.12*Math.exp(-Math.pow(i-4.5,2)/4)*(0.6+rnd()*0.8))); }
+  // coverage track
+  const covTrack=[]; for(let i=0;i<70;i++){ covTrack.push(Math.max(2, cov*(0.6+0.5*Math.sin(i/6)+ (rnd()-0.5)*0.5))); }
+  const consLen = 4600000 + Math.floor(rnd()*900000);
+  const completeness = 96 + +(rnd()*3.5).toFixed(1);
+  return { sample, reads, meanLen, meanQ, cov, hostPct, targetPct, otherPct, lenBins, qBins, covTrack,
+           consLen, completeness,
+           organism: pickOrganism(rnd), rng:rnd };
+}
+function pickOrganism(rnd){
+  const list=[["Escherichia coli","ecoli"],["Salmonella enterica","salmonella"],["Mannheimia haemolytica","mannheimia"],["Staphylococcus aureus","saureus"],["Pasteurella multocida","pasteurella"]];
+  return list[Math.floor(rnd()*list.length)];
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RESULTS DASHBOARD
+════════════════════════════════════════════════════════════════ */
+function showResults(){
+  const d=S.data;
+  $("restartBtn").classList.remove("hide");
+  $("resName").textContent = d.sample + " — " + d.organism[0];
+  const plat={minion:"MinION",gridion:"GridION",promethion:"PromethION",flongle:"Flongle"}[S.platform];
+  $("resSub").innerHTML = `<span class="ok">✓ Analysis complete</span> &nbsp;·&nbsp; ${plat} &nbsp;·&nbsp; ${fmt(d.reads)} reads`;
+  $("consSub").textContent = `${fmt(d.consLen)} bp · ${d.completeness}% complete · ${d.cov}× mean depth`;
+
+  $("metricCards").innerHTML = [
+    card("Reads passed", fmt(d.reads), "after QC + trimming", "g"),
+    card("Mean quality", "Q"+d.meanQ, d.meanQ>=15?"high quality":"acceptable", d.meanQ>=15?"g":"a"),
+    card("Genome coverage", d.cov+"×", "mean read depth", "t"),
+    card("Host DNA removed", d.hostPct+"%", S.host==="none"?"skipped":"of total reads", ""),
+    card("Consensus", d.completeness+"%", "genome complete", "g"),
+  ].join("");
+
+  $("chartLen").innerHTML = barChart(d.lenBins, ["1","","3","","5","","7","","9",""], "var(--teal)", "kb");
+  $("chartQual").innerHTML = barChart(d.qBins, ["Q8","","Q12","","Q16","","Q20",""], "var(--blue)", "");
+  renderDonut(d);
+  $("chartCov").innerHTML = areaChart(d.covTrack, d.cov);
+
+  // reset downstream
+  $("analysisPick").value=""; $("runAnalysisBtn").disabled=true; $("analysisPanel").innerHTML="";
+  show("results");
+}
+function card(l,v,s,cls){ return `<div class="mcard"><div class="ml">${l}</div><div class="mv ${cls}">${v}</div><div class="ms">${s}</div></div>`; }
+
+/* charts ─────────────────────────────────────────────────────── */
+function barChart(vals,labels,color,unit){
+  const W=420,H=170,pad=26,bw=(W-pad*2)/vals.length, max=Math.max(...vals)||1;
+  let bars="",lbls="";
+  vals.forEach((v,i)=>{
+    const h=(v/max)*(H-pad*2), x=pad+i*bw+bw*0.15, y=H-pad-h, w=bw*0.7;
+    bars+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${color}" opacity="${0.55+0.45*v/max}"/>`;
+    if(labels[i]) lbls+=`<text x="${pad+i*bw+bw/2}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--ink-3)">${labels[i]}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}"><line x1="${pad}" y1="${H-pad}" x2="${W-pad+6}" y2="${H-pad}" stroke="var(--line-2)"/>${bars}${lbls}
+    <text x="${W-pad}" y="16" text-anchor="end" font-size="10" fill="var(--ink-3)">${unit?"read length ("+unit+")":"quality score"}</text></svg>`;
+}
+function areaChart(vals,mean){
+  const W=420,H=170,pad=26,max=Math.max(...vals)*1.1;
+  const pts=vals.map((v,i)=>[pad+i/(vals.length-1)*(W-pad*2), H-pad-(v/max)*(H-pad*2)]);
+  const line=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  const fill=line+` L ${W-pad} ${H-pad} L ${pad} ${H-pad} Z`;
+  const my=H-pad-(mean/max)*(H-pad*2);
+  return `<svg viewBox="0 0 ${W} ${H}"><defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--teal)" stop-opacity=".35"/><stop offset="1" stop-color="var(--teal)" stop-opacity="0"/></linearGradient></defs>
+    <path d="${fill}" fill="url(#cg)"/><path d="${line}" fill="none" stroke="var(--teal)" stroke-width="2"/>
+    <line x1="${pad}" y1="${my}" x2="${W-pad}" y2="${my}" stroke="var(--amber)" stroke-width="1" stroke-dasharray="4 4"/>
+    <text x="${W-pad}" y="${my-5}" text-anchor="end" font-size="10" fill="var(--amber)">mean ${mean}×</text>
+    <text x="${pad}" y="${H-8}" font-size="10" fill="var(--ink-3)">start</text><text x="${W-pad}" y="${H-8}" text-anchor="end" font-size="10" fill="var(--ink-3)">end of genome</text></svg>`;
+}
+function renderDonut(d){
+  const segs=[["Target organism",d.targetPct,"var(--teal)"],["Host DNA",d.hostPct,"var(--amber)"],["Other / unclassified",d.otherPct,"var(--ink-3)"]].filter(s=>s[1]>0);
+  const r=52,C=2*Math.PI*r; let off=0,circ="";
+  segs.forEach(s=>{ const dash=C*s[1]/100; circ+=`<circle cx="75" cy="75" r="${r}" fill="none" stroke="${s[2]}" stroke-width="22" stroke-dasharray="${dash} ${C-dash}" stroke-dashoffset="${-off}" transform="rotate(-90 75 75)"/>`; off+=dash; });
+  $("chartTax").innerHTML=`<svg viewBox="0 0 150 150" style="max-width:170px;margin:0 auto">${circ}<text x="75" y="72" text-anchor="middle" font-size="22" font-weight="800" fill="var(--ink)">${d.targetPct}%</text><text x="75" y="90" text-anchor="middle" font-size="10" fill="var(--ink-3)">target</text></svg>`;
+  $("legendTax").innerHTML=segs.map(s=>`<span><i style="background:${s[2]}"></i>${s[0]} · ${s[1]}%</span>`).join("");
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DOWNSTREAM ANALYSIS
+════════════════════════════════════════════════════════════════ */
+$("analysisPick").addEventListener("change", e=>{ $("runAnalysisBtn").disabled = !e.target.value; });
+$("runAnalysisBtn").addEventListener("click", ()=>{
+  const kind=$("analysisPick").value; if(!kind) return;
+  const btn=$("runAnalysisBtn"); btn.disabled=true; btn.innerHTML='<span class="spin"></span> Running…';
+  setTimeout(()=>{ renderAnalysis(kind); btn.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Run analysis'; btn.disabled=false;
+    $("analysisPanel").scrollIntoView({behavior:"smooth",block:"nearest"}); }, 900);
+});
+
+function renderAnalysis(kind){
+  const d=S.data, rnd=seeded(d.sample+kind);
+  const map={ amr:["#fbe1e6","var(--red)",amrPanel,"Antimicrobial resistance","Resistance genes predicted from the consensus genome"],
+    snp:["var(--blue-soft)","var(--blue)",snpPanel,"SNP analysis","Differences between your sample and the reference"],
+    mlst:["var(--purple-soft)","var(--purple)",mlstPanel,"MLST sequence typing","Standardised strain type"],
+    virulence:["var(--amber-soft)","var(--amber)",virPanel,"Virulence genes","Genes linked to disease-causing ability"],
+    phylo:["var(--green-soft)","var(--green)",phyloPanel,"Phylogenetics","How your sample relates to known strains"] };
+  const [bg,fg,fn,title,sub]=map[kind];
+  const ics={amr:'<path d="M19 8l-7 4-7-4M5 8l7-4 7 4v8l-7 4-7-4z"/>',snp:'<path d="M3 12h4l3 8 4-16 3 8h4"/>',mlst:'<circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7.5 7.5L11 16M16.5 7.5L13 16"/>',virulence:'<path d="M12 2l2 5 5 .5-4 3.5 1 5-4-2.5L8 19l1-5-4-3.5 5-.5z"/>',phylo:'<path d="M5 4v16M5 8h6M5 14h6M11 8v-3h8M11 14v3h8"/>'};
+  $("analysisPanel").innerHTML = `
+    <div class="analysis-panel">
+      <div class="ap-head"><span class="ap-ic" style="background:${bg};color:${fg}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ics[kind]}</svg></span>
+        <div><div class="ap-title">${title}</div><div class="ap-sub">${sub} · ${d.sample}</div></div></div>
+      ${fn(d,rnd)}
+      <div class="ap-note">Example output for demonstration. With a connected server this panel shows your sample's real result${$("savePath").value?` and saves to <code>${$("savePath").value.replace("{sample}",d.sample)}</code>`:""}.</div>
+    </div>`;
+  if($("savePath").value) toast("Will save results to "+$("savePath").value.replace("{sample}",d.sample));
+}
+
+function amrPanel(d,rnd){
+  const pool=[["blaTEM-1B","Beta-lactams (ampicillin)","res"],["tet(A)","Tetracyclines","res"],["sul2","Sulfonamides","res"],["aph(3'')-Ib","Aminoglycosides","res"],["qnrS1","Fluoroquinolones","res"],["floR","Phenicols","res"],["mcr-1","Colistin (last-resort)","res"],["dfrA14","Trimethoprim","res"]];
+  const n=3+Math.floor(rnd()*4); const rows=pool.slice(0,n);
+  const classes=[...new Set(rows.map(r=>r[1].split(" (")[0]))];
+  const chips = classes.map(c=>`<span class="chip r">Resistant · ${c}</span>`).join("") + `<span class="chip g">Susceptible · Carbapenems</span>`;
+  const body = rows.map(r=>`<tr><td><code>${r[0]}</code></td><td>${r[1]}</td><td><code>${(96+rnd()*3.8).toFixed(1)}%</code></td><td><span class="tag res">Resistant</span></td></tr>`).join("");
+  return `<div class="chips">${chips}</div>
+    <table><thead><tr><th>Gene found</th><th>Resistance to</th><th>Match</th><th>Call</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function snpPanel(d,rnd){
+  const snps=420+Math.floor(rnd()*900), indels=12+Math.floor(rnd()*40), tstv=(1.6+rnd()*0.7).toFixed(2), ns=Math.floor(snps*0.38);
+  const genes=["gyrA","rpoB","katG","parC","mexR","ompF","acrR","folP"];
+  const eff=[["missense","med"],["synonymous","lo"],["stop gained","hi"],["missense","med"]];
+  let rows=""; for(let i=0;i<5;i++){ const g=genes[Math.floor(rnd()*genes.length)], e=eff[Math.floor(rnd()*eff.length)];
+    const pos=fmt(100000+Math.floor(rnd()*4000000)); const bases="ACGT"; const a=bases[Math.floor(rnd()*4)]; let b=bases[Math.floor(rnd()*4)]; if(b===a)b=bases[(bases.indexOf(a)+1)%4];
+    rows+=`<tr><td><code>${pos}</code></td><td><code>${a}→${b}</code></td><td><code>${g}</code></td><td><span class="tag ${e[1]}">${e[0]}</span></td><td><code>Q${(40+rnd()*20).toFixed(0)}</code></td></tr>`; }
+  return `<div class="minicards">
+      <div class="minicard"><div class="v">${fmt(snps)}</div><div class="l">SNPs vs reference</div></div>
+      <div class="minicard"><div class="v">${indels}</div><div class="l">Insertions / deletions</div></div>
+      <div class="minicard"><div class="v">${tstv}</div><div class="l">Ts/Tv ratio</div></div>
+      <div class="minicard"><div class="v">${fmt(ns)}</div><div class="l">In protein-coding regions</div></div></div>
+    <table><thead><tr><th>Position</th><th>Change</th><th>Gene</th><th>Effect</th><th>Confidence</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function mlstPanel(d,rnd){
+  const st=Math.floor(10+rnd()*600), scheme=d.organism[0];
+  const loci=["adk","fumC","gyrB","icd","mdh","purA","recA"];
+  const body=loci.map(l=>`<tr><td><code>${l}</code></td><td><code>${Math.floor(1+rnd()*120)}</code></td></tr>`).join("");
+  return `<div class="chips"><span class="chip n">Scheme · ${scheme}</span><span class="chip g">Sequence type · ST${st}</span></div>
+    <table><thead><tr><th>Locus</th><th>Allele</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function virPanel(d,rnd){
+  const pool=[["stx2","Shiga toxin"],["eae","Intimin (attachment)"],["hlyA","Haemolysin"],["fimH","Adhesion"],["iutA","Iron uptake"],["cnf1","Cytotoxic factor"]];
+  const n=2+Math.floor(rnd()*4), rows=pool.slice(0,n).map(r=>`<tr><td><code>${r[0]}</code></td><td>${r[1]}</td><td><code>${(95+rnd()*4).toFixed(1)}%</code></td><td><span class="tag res">Present</span></td></tr>`).join("");
+  return `<div class="chips"><span class="chip n">${n} virulence genes detected</span></div>
+    <table><thead><tr><th>Gene</th><th>Function</th><th>Match</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function phyloPanel(d,rnd){
+  const dist=(rnd()*0.4).toFixed(3);
+  return `<div class="chips"><span class="chip n">Closest known strain · ${d.organism[0]} ${Math.floor(rnd()*9000)}</span><span class="chip g">${(rnd()*40).toFixed(0)} SNPs away</span></div>
+    <svg viewBox="0 0 420 150" style="margin-top:6px"><g stroke="var(--ink-3)" stroke-width="1.5" fill="none">
+      <path d="M20 75 H70"/><path d="M70 40 V110"/><path d="M70 40 H140"/><path d="M70 110 H120"/><path d="M120 90 V130"/><path d="M120 90 H190"/><path d="M120 130 H190"/></g>
+      <circle cx="190" cy="40" r="5" fill="var(--teal)"/><text x="202" y="44" font-size="12" font-weight="700" fill="var(--ink)">${d.sample} (your sample)</text>
+      <circle cx="190" cy="90" r="4" fill="var(--ink-3)"/><text x="202" y="94" font-size="11" fill="var(--ink-2)">Reference strain</text>
+      <circle cx="190" cy="130" r="4" fill="var(--ink-3)"/><text x="202" y="134" font-size="11" fill="var(--ink-2)">Related isolate</text>
+    </svg><div class="ap-sub">Branch length ≈ genetic distance (${dist} substitutions/site).</div>`;
+}
+
+/* downloads + restart ───────────────────────────────────────── */
+function download(name,text){ const b=new Blob([text],{type:"text/plain"}),u=URL.createObjectURL(b),a=document.createElement("a"); a.href=u;a.download=name;a.click(); setTimeout(()=>URL.revokeObjectURL(u),400); }
+$("dlConsensus").addEventListener("click", ()=>{ const d=S.data;
+  download(d.sample+".consensus.fasta", `>${d.sample} consensus ${d.organism[0]} | ${d.consLen}bp ${d.completeness}% complete\n`+"ACGT".repeat(15)+"… (example consensus — real sequence comes from the server)\n");
+  toast("Consensus FASTA downloaded (example)"); });
+$("reportBtn").addEventListener("click", ()=>{ const d=S.data;
+  const txt=`VetGenome Analyze — summary\nSample: ${d.sample}\nOrganism: ${d.organism[0]}\nPlatform: ${S.platform}\nReads: ${d.reads}\nMean quality: Q${d.meanQ}\nMean coverage: ${d.cov}x\nHost removed: ${d.hostPct}%\nConsensus: ${d.consLen} bp, ${d.completeness}% complete\n\n(Example results for demonstration.)\n`;
+  download(d.sample+".summary.txt", txt); toast("Summary downloaded"); });
+$("restartBtn").addEventListener("click", ()=>{ location.reload(); });
+
+refreshStart();
+</script>
+</body>
+</html>

@@ -1,1 +1,9 @@
 .env
+node_modules/
+__pycache__/
+.nextflow/
+backend/__pycache__/
+frontend/node_modules/
+backend/.nextflow/
+backend/.nextflow.log
+**/*.pyc

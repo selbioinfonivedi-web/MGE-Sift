@@ -10,7 +10,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/mge-sift
+IMAGE_NAME: ${{ github.repository_owner }}/${{ github.event.repository.name | lower }}/mge-sift
 
 jobs:
   # ============================================================================

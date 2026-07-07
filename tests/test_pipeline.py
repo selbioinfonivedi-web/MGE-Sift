@@ -58,12 +58,10 @@ DATABASE_PATH=/tmp/test.db
 def test_fasta(temp_dir):
     """Create test FASTA file."""
     fasta_file = temp_dir / "test.fasta"
-    fasta_file.write_text("""
->contig_1
-ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG
->contig_2
-GCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA
-""")
+    fasta_file.write_text(">contig_1\n"
+"ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG\n"
+">contig_2\n"
+"GCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA\n")
     return fasta_file
 
 
@@ -248,7 +246,7 @@ class TestShellPipelineStage:
         
         stage = ShellPipelineStage(
             name="annotation",
-            script_path=Path("/fake/script.sh")
+            script_path=Path(__file__)
         )
         
         result = stage.execute(test_sample)

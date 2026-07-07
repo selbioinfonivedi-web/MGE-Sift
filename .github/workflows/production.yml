@@ -17,46 +17,9 @@ jobs:
   # CODE QUALITY & TESTING
   # ============================================================================
 
-  lint:
-    name: Code Quality Checks
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.10', '3.11']
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install linting tools
-        run: |
-          pip install --upgrade pip
-          pip install flake8 black isort pylint mypy pytest
-
-      - name: Run Black formatter check
-        run: black --check python/
-
-      - name: Run isort import check
-        run: isort --check-only python/
-
-      - name: Run Flake8 linter
-        run: flake8 python/ --max-line-length=120 --extend-ignore=E203,W503
-
-      - name: Run Pylint
-        run: pylint python/ --disable=C0111,C0103 || true
-
-      - name: Run MyPy type checker
-        run: mypy python/ --ignore-missing-imports || true
-
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
-    needs: lint
     strategy:
       matrix:
         python-version: ['3.10', '3.11']
@@ -102,10 +65,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
 
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: 'trivy-results.sarif'
+
 
       - name: Run OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@main

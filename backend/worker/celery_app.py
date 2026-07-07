@@ -52,8 +52,25 @@ def run_nextflow_pipeline(self, job_id: str, input_dir: str, output_dir: str):
         stdout, stderr = process.communicate()
         
         if process.returncode != 0:
-            print(f"[JOB {job_id}] Pipeline FAILED. Error: {stderr}")
+            error_msg = stderr.strip() if stderr and stderr.strip() else stdout.strip()
+            # Truncate if too long for DB column
+            if len(error_msg) > 1000:
+                error_msg = error_msg[-1000:]
+            print(f"[JOB {job_id}] Pipeline FAILED. Exit code: {process.returncode}\nError: {error_msg}")
+            
             # 2. Update Database -> FAILED
+            try:
+                from db.session import SessionLocal
+                from db.models import AnalysisJob
+                db = SessionLocal()
+                job = db.query(AnalysisJob).filter(AnalysisJob.id == job_id).first()
+                if job:
+                    job.status = JobStatus.FAILED
+                    job.error_message = error_msg
+                db.commit()
+                db.close()
+            except Exception as e:
+                print(f"[JOB {job_id}] DB Update Error: {e}")
             return {"job_id": job_id, "status": JobStatus.FAILED.value, "error": stderr}
             
         print(f"[JOB {job_id}] Pipeline COMPLETED successfully.")
@@ -83,6 +100,15 @@ def run_nextflow_pipeline(self, job_id: str, input_dir: str, output_dir: str):
                     db.add(new_res)
                 
                 # Update job status
+                job = db.query(AnalysisJob).filter(AnalysisJob.id == job_id).first()
+                if job:
+                    job.status = JobStatus.COMPLETED
+                db.commit()
+                db.close()
+            else:
+                # The pipeline succeeded but generated no final JSON
+                # This usually means no MGEs were found and Integration was skipped
+                db = SessionLocal()
                 job = db.query(AnalysisJob).filter(AnalysisJob.id == job_id).first()
                 if job:
                     job.status = JobStatus.COMPLETED

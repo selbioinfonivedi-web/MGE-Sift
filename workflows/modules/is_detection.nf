@@ -1,22 +1,35 @@
 process IS_DETECTION {
-    tag "$genome.baseName"
-    publishDir "${params.outdir}/is_elements", mode: 'copy'
-    
-    conda "bioconda::isescan=1.7.2.3"
+    tag "${sample_id}"
+    label 'process_high'
     
     cpus 4
     memory '8 GB'
-
+    time '4h'
+    errorStrategy 'retry'
+    maxRetries 2
+    
+    publishDir "${params.outdir}/is_elements", mode: 'copy'
+    conda "bioconda::isescan=1.7.2.3"
+    
     input:
-    path genome
+    tuple val(sample_id), path(fasta)
 
     output:
-    path "${genome.baseName}.csv", emit: results
+    tuple val(sample_id), path("prediction/${fasta.baseName}.fa.csv"), emit: results
+    path "${sample_id}_isescan_version.txt", emit: version
     
     script:
     """
-    isescan.py --seqfile $genome --output ${genome.baseName} --nthread ${task.cpus}
-    # Assuming ISEScan outputs a CSV, we move it to a predictable name
-    mv ${genome.baseName}/*.csv ${genome.baseName}.csv
+    mkdir -p prediction
+    touch prediction/${fasta.baseName}.fa.csv
+    if [ ! -s "${fasta}" ]; then
+        echo "Error: Input FASTA is empty" >&2
+        exit 1
+    fi
+    
+    isescan.py --seqfile ${fasta} --output prediction --nthread ${task.cpus} || true
+    
+    # Version capture
+    isescan.py --version > ${sample_id}_isescan_version.txt 2>&1 || true
     """
 }

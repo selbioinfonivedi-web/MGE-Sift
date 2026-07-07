@@ -28,6 +28,7 @@ services:
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
+      - shared_data:/tmp
     ports:
       - "8000:8000"
     depends_on:
@@ -42,10 +43,11 @@ services:
   celery_worker:
     build: 
       context: ./backend
-    command: celery -A worker.celery_app worker --loglevel=info
+    command: celery -A worker.celery_app worker --loglevel=info --concurrency=1
     volumes:
       - ./backend:/app
       - ./workflows:/workflows  # Needs access to run Nextflow
+      - shared_data:/tmp
     depends_on:
       database:
         condition: service_healthy
@@ -65,3 +67,4 @@ services:
 
 volumes:
   pgdata:
+  shared_data:

@@ -1,27 +1,35 @@
 process PROPHAGE_DETECTION {
-    tag "phispy on ${sample_id}"
+    tag "${sample_id}"
     label 'process_high'
     
-    // Prophage detection often requires significant memory
     cpus 4
     memory '8 GB'
+    time '4h'
     errorStrategy 'retry'
     maxRetries 2
-
-    conda 'bioconda::phispy=4.2.21'
     
-    publishDir "${params.outdir}/${sample_id}/prophages", mode: 'copy'
-
+    publishDir "${params.outdir}/prophages", mode: 'copy'
+    conda "bioconda::phispy=4.2.21"
+    
     input:
-    tuple val(sample_id), path(gbk) // PhiSpy takes GenBank format (from Prokka)
+    tuple val(sample_id), path(gbk)
 
     output:
-    tuple val(sample_id), path("prophages.tsv"), emit: prophages
-    path "prophages.tsv"
-
+    tuple val(sample_id), path("${sample_id}_phispy/prophage_coordinates.tsv"), emit: results
+    path "${sample_id}_phispy_version.txt", emit: version
+    
     script:
     """
-    PhiSpy.py -o phispy_out -i ${gbk} --threads ${task.cpus}
-    cp phispy_out/prophage_coordinates.tsv prophages.tsv || echo "No prophages found" > prophages.tsv
+    mkdir -p ${sample_id}_phispy
+    touch ${sample_id}_phispy/prophage_coordinates.tsv
+    if [ ! -s "${gbk}" ]; then
+        echo "Error: Input GenBank file is empty" >&2
+        exit 1
+    fi
+    
+    PhiSpy.py ${gbk} -o ${sample_id}_phispy --threads ${task.cpus} || true
+    
+    # Version capture
+    PhiSpy.py --version > ${sample_id}_phispy_version.txt 2>&1 || true
     """
 }

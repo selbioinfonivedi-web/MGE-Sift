@@ -28,7 +28,12 @@ async def upload_genome(file: UploadFile = File(...), db: Session = Depends(get_
     if not file.filename.endswith(('.fasta', '.fna', '.fastq', '.gz', '.fa')):
         raise HTTPException(status_code=400, detail="Invalid file type. Only FASTA/FASTQ supported.")
         
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    # Security: Prevent path traversal by extracting only the basename
+    safe_filename = os.path.basename(file.filename)
+    if not safe_filename:
+        raise HTTPException(status_code=400, detail="Invalid filename.")
+        
+    file_path = os.path.join(UPLOAD_DIR, safe_filename)
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)

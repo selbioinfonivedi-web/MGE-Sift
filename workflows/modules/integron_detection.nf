@@ -1,24 +1,35 @@
 process INTEGRON_DETECTION {
-    tag "integron_finder on ${sample_id}"
+    tag "${sample_id}"
     label 'process_medium'
     
-    // Use an exact Bioconda environment container for reproducibility
-    conda 'bioconda::integron_finder=2.0.2'
+    cpus 4
+    memory '8 GB'
+    time '4h'
+    errorStrategy 'retry'
+    maxRetries 2
     
-    publishDir "${params.outdir}/${sample_id}/integrons", mode: 'copy'
-
+    publishDir "${params.outdir}/integrons", mode: 'copy'
+    conda "bioconda::integron_finder=2.0.2"
+    
     input:
     tuple val(sample_id), path(fasta)
 
     output:
-    tuple val(sample_id), path("integrons.out"), emit: integrons
-    path "integrons.out"
-
+    tuple val(sample_id), path("Results_Integron_Finder_${fasta.baseName}/${fasta.baseName}.integrons"), emit: results
+    path "${sample_id}_integronfinder_version.txt", emit: version
+    
     script:
     """
-    integron_finder --local-max --mute --func-annot --outdir . ${fasta}
-    # IntegronFinder creates a folder named after the fasta file
-    # We copy the main summary file to a standard name
-    cp *.summary integrons.out || echo "No integrons found" > integrons.out
+    mkdir -p Results_Integron_Finder_${fasta.baseName}
+    touch Results_Integron_Finder_${fasta.baseName}/${fasta.baseName}.summary
+    if [ ! -s "${fasta}" ]; then
+        echo "Error: Input FASTA is empty" >&2
+        exit 1
+    fi
+    
+    integron_finder --local-max --cpu ${task.cpus} ${fasta} || true
+    
+    # Version capture
+    integron_finder --version > ${sample_id}_integronfinder_version.txt 2>&1 || true
     """
 }

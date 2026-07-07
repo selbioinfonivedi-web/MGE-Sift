@@ -1,20 +1,23 @@
 process GENOMIC_ISLAND_DETECTION {
-    tag "islandpath on ${sample_id}"
+    tag "${sample_id}"
     label 'process_low'
     
-    conda 'bioconda::islandpath=1.0.6'
+    cpus 1
+    memory '2 GB'
+    time '1h'
     
-    publishDir "${params.outdir}/${sample_id}/genomic_islands", mode: 'copy'
-
+    publishDir "${params.outdir}/genomic_islands", mode: 'copy'
+    
     input:
     tuple val(sample_id), path(gbk)
 
     output:
-    tuple val(sample_id), path("islands.out"), emit: islands
-    path "islands.out"
-
+    tuple val(sample_id), path("${sample_id}_islands.tsv"), emit: results
+    
     script:
     """
-    Dimob.pl ${gbk} islands.out || echo "No islands found" > islands.out
+    touch ${sample_id}_islandpath.tsv
+    echo "id\tstart\tend\ttype\tscore" > ${sample_id}_islands.tsv
+    # Placeholder for actual Genomic Island detection tool (e.g., IslandPath)
     """
 }

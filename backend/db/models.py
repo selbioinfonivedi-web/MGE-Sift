@@ -40,12 +40,12 @@ class MGEResult(Base):
     __tablename__ = "mge_results"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    job_id = Column(String, ForeignKey("analysis_jobs.id"), nullable=False)
+    job_id = Column(String, ForeignKey("analysis_jobs.id"), nullable=False, index=True)
     
-    mge_type = Column(String, nullable=False) # e.g., 'Plasmid', 'Integron', 'Prophage'
-    classification = Column(String, nullable=False) # 'Acquired' vs 'Intrinsic'
+    mge_type = Column(String, nullable=False, index=True) # e.g., 'Plasmid', 'Integron', 'Prophage'
+    classification = Column(String, nullable=False, index=True) # 'Acquired' vs 'Intrinsic'
     
-    contig_id = Column(String, nullable=False)
+    contig_id = Column(String, nullable=False, index=True)
     start_pos = Column(Integer)
     end_pos = Column(Integer)
     

@@ -7,8 +7,13 @@ client = TestClient(app)
 def test_health_check():
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "service": "mge-sift-api"}
+    data = response.json()
+    assert data["status"] == "ok"
+    # Ensure our Phase 4 DB/Redis health checks are running (even if they fail in the mock CI environment, they should be present)
+    assert "database" in data
+    assert "redis" in data
 
 def test_upload_missing_file():
-    response = client.post("/upload")
+    # Attempting to upload without a file to the v1 endpoint
+    response = client.post("/api/v1/upload/")
     assert response.status_code == 422 # Unprocessable Entity (missing file)

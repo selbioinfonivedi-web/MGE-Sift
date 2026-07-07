@@ -1,109 +1,68 @@
-# MGE-Sift v2.0 - Production Pipeline
+# MGE-Sift
 
-A comprehensive, enterprise-grade bioinformatics pipeline for detecting and classifying mobile genetic elements (MGEs) in bacterial genomes. It distinguishes acquired vs intrinsic elements and identifies antimicrobial resistance (AMR) genes within MGEs.
+**MGE-Sift** (Mobile Genetic Element Sift) is a comprehensive, high-throughput bioinformatics pipeline and web dashboard designed to automatically detect, parse, and visualize Mobile Genetic Elements (MGEs) and Antimicrobial Resistance (AMR) genes in bacterial genomes.
 
-## 🚀 Features
+## 🧬 Features
 
-- **Nextflow DSL2 Orchestration**: Modular, scalable, and parallelizable workflow.
-- **Multi-module Detection Pipeline**:
-  - Genome annotation (Prokka/Bakta)
-  - Plasmid detection (MOB-suite)
-  - IS element detection (ISEScan)
-  - Integron detection (IntegronFinder)
-  - Prophage detection (PhiSpy)
-  - Genomic island and repeat detection
-  - HGT signals and AMR detection (RGI, ResFinder, ABRicate)
-- **FastAPI Backend**: REST API for results access, querying, and exporting.
-- **Vue.js 3 Web UI**: Modern, responsive dashboard for real-time statistics, sample uploads, and interactive result visualization.
-- **Docker & Container Orchestration**: Multi-stage builds and `docker-compose` setup for complete reproducibility.
-- **CI/CD Automation**: Automated testing, security scanning, and deployment via GitHub Actions.
+- **Automated Detection Pipeline**: Leverages Nextflow to orchestrate leading bioinformatics tools in parallel.
+  - **Plasmids**: MOB-suite
+  - **Prophages**: PhiSpy
+  - **Integrons**: IntegronFinder 2.0
+  - **IS Elements**: ISEScan
+  - **Genomic Islands**: IslandPath
+  - **AMR Genes**: ABRicate
+- **Smart Classification**: Automatically determines whether AMR genes are **Intrinsic** (chromosomal) or **Acquired** (overlapping with a detected Mobile Genetic Element).
+- **Interactive Scientific Visualization**: Fully integrated with the Broad Institute's **IGV.js** (Integrative Genomics Viewer) to provide an interactive, zoomed-in, stacked-track linear genome browser directly in the dashboard.
+- **Full-Stack Dockerized Architecture**: Completely containerized for instant, reproducible deployments.
 
 ## 🏗️ Architecture
 
-MGE-Sift provides a robust architecture incorporating Nextflow for pipeline execution, FastAPI for the backend service, SQLite/PostgreSQL for result tracking, and Vue.js for user interaction.
+The application is split into several microservices coordinated via `docker-compose`:
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                    User Browser (Port 3000)                 │
-│                      Vue.js 3 Web UI                        │
-├─────────────────────────────────────────────────────────────┤
-│            FastAPI Backend (Port 8000)                      │
-├─────────────────────────────────────────────────────────────┤
-│    Nextflow Pipeline Orchestration (Data Processing)        │
-│  ┌──────────────────────────────────────────────────┐      │
-│  │ Annotation → Plasmid → IS → Integrons → AMR ... │      │
-│  └──────────────────────────────────────────────────┘      │
-└─────────────────────────────────────────────────────────────┘
-```
+- **Frontend (`/frontend`)**: A sleek, reactive dashboard built with **Vue 3**, **Tailwind CSS**, and **Vite**. It features an IGV.js genome viewer and a dynamic data table with pagination.
+- **Backend API (`/backend`)**: A fast, asynchronous REST API built with **FastAPI**. It handles genome uploads, serves dynamic FASTA/BED files for IGV, and queries the database.
+- **Message Broker & Workers (`/backend/worker`)**: **Redis** and **Celery** handle asynchronous job queueing, ensuring the heavy Nextflow pipelines run reliably in the background without blocking the UI.
+- **Database**: **PostgreSQL** stores analysis jobs, parsed MGE coordinates, evidence scores, and classifications.
+- **Bioinformatics Pipeline (`/workflows`)**: A **Nextflow** pipeline that utilizes Conda/Bioconda to provision dependencies and run the bioinformatics software.
 
-## ⚡ Quick Start
+## 🚀 Quick Start
 
-### 1. Run via Docker Compose (Recommended)
+### Prerequisites
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
 
-The easiest way to run the complete MGE-Sift stack (Web UI, API, Database) is using Docker Compose:
+### Running Locally
 
-```bash
-# Clone the repository
-git clone https://github.com/MGE_VetgenomeHub/MGE_Bio.git
-cd MGE-Sift
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/YourUsername/MGE-Sift.git
+   cd MGE-Sift
+   ```
 
-# Start all services
-docker-compose up -d
+2. **Spin up the entire stack**:
+   ```bash
+   docker-compose up --build
+   ```
+   *(Note: The initial build may take some time as it installs Python packages, Node modules, and prepares the bioinformatics environment.)*
 
-# Wait a few seconds for the services to boot up
-```
+3. **Access the Application**:
+   - **Frontend Dashboard**: Open your browser to `http://localhost:5173`
+   - **Backend API Docs (Swagger)**: `http://localhost:8000/docs`
 
-- **Web UI**: [http://localhost:3000](http://localhost:3000)
-- **API**: [http://localhost:8000](http://localhost:8000)
-- **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+## 🧪 Usage
 
-### 2. Manual Development Setup
+1. Navigate to the **Upload** page on the frontend.
+2. Upload your assembled bacterial genome (`.fasta` or `.consensus.fa`).
+3. The system will return a **Job ID** and queue the pipeline in the background.
+4. Navigate to the **Queue** page to monitor the live status of your job.
+5. Once marked as `COMPLETED`, open the **Dashboard**, enter your Job ID, and click Fetch to explore the interactive IGV genome track and tabular results.
 
-If you wish to run the pipeline manually or develop locally:
+## 🛠️ Built With
 
-```bash
-# Setup Conda environment
-conda env create -f environment.yml
-conda activate mge_pipeline
-
-# Install database dependencies
-bash scripts/install_dbs.sh ./databases
-
-# Run the Nextflow pipeline directly
-nextflow run nextflow/production.nf --input genomes/ --outdir results/
-```
-
-## 📊 MGE Classification Logic
-
-- **IS Elements**: Scored based on intact transposases, flanking TSDs, and copies to classify as ACQUIRED (active/mobilized) or INTRINSIC (immobilized).
-- **Integrons**: Complete integrons with cassettes are ACQUIRED; CALIN-type are INTRINSIC.
-- **Prophages**: High GC deviation + lytic genes = ACQUIRED; GC near host mean + remnants = INTRINSIC.
-- **Genomic Islands**: GC deviation > 5% + tRNA flanking = ACQUIRED.
-
-## 📚 Documentation
-
-For more detailed information, please refer to the following guides:
-- [Production Guide](PRODUCTION_GUIDE.md): Comprehensive deployment and architecture documentation.
-- [Web UI Integration](WEB_UI_SUMMARY.md) & [Web Quickref](WEB_QUICKREF.md): Web interface setup and features.
-- [Integration Guide](INTEGRATION_GUIDE.md): Backend and frontend integration details.
-- [Implementation Summary](IMPLEMENTATION_SUMMARY.md): Development features and tools incorporated in v2.0.
-
-## 🧪 Testing
-
-The pipeline comes with a comprehensive testing suite.
-```bash
-# Unit and Integration Tests
-pytest tests/test_pipeline.py
-bash tests/integration_tests.sh
-
-# Complete Validation Script
-bash validate_production.sh
-```
-
-## 📝 License & Citation
-
-**MGE Detection Pipeline v2.0.0**  
-Multi-element MGE detection and classification system  
-[https://github.com/MGE_VetgenomeHub/MGE_Bio](https://github.com/MGE_VetgenomeHub/MGE_Bio)
-
-If you use this pipeline in your research, please ensure you also cite the constituent tools used in the analysis (Prokka/Bakta, MOB-suite, ISEScan, etc.).
+- [Nextflow](https://www.nextflow.io/)
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [Vue.js](https://vuejs.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [IGV.js](https://github.com/igvteam/igv.js)
+- [Celery](https://docs.celeryq.dev/) & [Redis](https://redis.io/)
+- [PostgreSQL](https://www.postgresql.org/)

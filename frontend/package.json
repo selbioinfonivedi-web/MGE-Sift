@@ -22,9 +22,9 @@
     "jsdom": "^23.0.0",
     "postcss": "^8.5.16",
     "tailwindcss": "^3.4.19",
-    "typescript": "^5.0.2",
+    "typescript": "~5.4.5",
     "vite": "^4.4.5",
     "vitest": "^1.0.0",
-    "vue-tsc": "^1.8.5"
+    "vue-tsc": "^2.0.29"
   }
 }

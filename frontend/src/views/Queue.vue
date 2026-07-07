@@ -9,6 +9,7 @@
             <th class="p-4 font-semibold">Sample Name</th>
             <th class="p-4 font-semibold">Status</th>
             <th class="p-4 font-semibold">Submitted</th>
+            <th class="p-4 font-semibold text-right">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-700 text-gray-300">
@@ -29,9 +30,18 @@
               </span>
             </td>
             <td class="p-4 text-gray-400 text-sm">{{ formatDate(job.created_at) }}</td>
+            <td class="p-4 text-right">
+              <router-link
+                v-if="job.status === 'COMPLETED'"
+                :to="`/results/${job.id}`"
+                class="inline-flex items-center px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded shadow-sm transition-colors"
+              >
+                View Results
+              </router-link>
+            </td>
           </tr>
           <tr v-if="jobs.length === 0">
-            <td colspan="4" class="p-8 text-center text-gray-500">No jobs in the queue yet.</td>
+            <td colspan="5" class="p-8 text-center text-gray-500">No jobs in the queue yet.</td>
           </tr>
         </tbody>
       </table>

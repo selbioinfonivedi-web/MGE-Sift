@@ -171,7 +171,7 @@ jobs:
     if: github.event_name != 'pull_request'
     services:
       pipeline:
-        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        image: ghcr.io/${{ github.repository }}/mge-sift:${{ github.sha }}
         options: >-
           --health-cmd="ls /workspace || exit 1"
           --health-interval=10s
